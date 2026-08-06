@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Claudian">
+<meta name="theme-color" content="#faf9f5">
+<meta name="description" content="Claudian — 宇航的 AI 伴侣">
+<title>Claudian</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="/claude-logo.svg">
+
+<style>
+/* ── Fonts ───────────────────────────────────────────── */
+@font-face {
+  font-family: "Anthropic Sans";
+  src: url("/fonts/AnthropicSans-Roman.ttf") format("truetype");
+  font-weight: 400; font-style: normal;
+}
+@font-face {
+  font-family: "Anthropic Sans";
+  src: url("/fonts/AnthropicSans-Italic.ttf") format("truetype");
+  font-weight: 400; font-style: italic;
+}
+@font-face {
+  font-family: "Anthropic Serif";
+  src: url("/fonts/AnthropicSerif-Roman.ttf") format("truetype");
+  font-weight: 300; font-style: normal;
+}
+@font-face {
+  font-family: "Anthropic Serif";
+  src: url("/fonts/AnthropicSerif-Italic.ttf") format("truetype");
+  font-weight: 300; font-style: italic;
+}
+
+/* ── Design Tokens ────────────────────────────────────── */
+:root {
+  --canvas: #faf9f5;
+  --coral: #cc785c;
+  --coral-active: #a9583e;
+  --coral-light: rgba(204,120,92,.12);
+  --ink: #141413;
+  --body: #3d3d3a;
+  --muted: #6c6a64;
+  --muted-light: #a09d96;
+  --surface: #ffffff;
+  --surface-card: #ebe5d8;
+  --border: #e0dbcf;
+  --shadow-sm: 0 1px 2px rgba(20,20,19,.04);
+  --shadow-md: 0 4px 12px rgba(20,20,19,.06);
+  --radius-sm: 10px;
+  --radius: 16px;
+  --radius-lg: 22px;
+  --radius-full: 9999px;
+  --font-sans: "Anthropic Sans", system-ui, -apple-system, sans-serif;
+  --font-serif: "Anthropic Serif", Georgia, serif;
+}
+
+/* ── Reset ────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;-webkit-font-smoothing:antialiased}
+body{
+  font-family:var(--font-sans);
+  background:var(--canvas);
+  color:var(--ink);
+  overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* ── App Shell ────────────────────────────────────────── */
+#app{
+  display:flex;
+  flex-direction:column;
+  height:100dvh;
+  height:100vh;
+  max-width:100%;
+  margin:0 auto;
+}
+
+/* Header */
+.header{
+  flex:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:52px;
+  padding:0 16px;
+  border-bottom:1px solid var(--border);
+  background:var(--canvas);
+  position:relative;
+}
+.header-title{
+  font-family:var(--font-serif);
+  font-size:18px;
+  font-weight:300;
+  color:var(--ink);
+  letter-spacing:-.3px;
+}
+.header-actions{
+  position:absolute;
+  right:12px;
+  top:50%;
+  transform:translateY(-50%);
+  display:flex;
+  gap:4px;
+}
+.btn-icon{
+  width:36px;height:36px;
+  border-radius:50%;
+  border:none;
+  background:transparent;
+  color:var(--muted);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:background .15s;
+}
+.btn-icon:hover,.btn-icon:active{background:var(--surface-card)}
+.btn-icon svg{width:18px;height:18px}
+
+/* Messages */
+.messages{
+  flex:1;
+  overflow-y:auto;
+  padding:20px 16px;
+  scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch;
+}
+.messages-inner{
+  max-width:720px;
+  margin:0 auto;
+  display:flex;
+  flex-direction:column;
+  gap:24px;
+}
+
+/* Empty state */
+.empty-state{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+  color:var(--muted);
+  padding:40px;
+  text-align:center;
+}
+.empty-logo{
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  background:var(--surface-card);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.empty-logo svg{width:24px;height:24px}
+.empty-title{
+  font-family:var(--font-serif);
+  font-size:22px;
+  font-weight:300;
+  color:var(--body);
+  letter-spacing:-.3px;
+}
+.empty-sub{
+  font-size:14px;
+  color:var(--muted-light);
+  max-width:260px;
+  line-height:1.5;
+}
+
+/* Message bubbles */
+.msg{display:flex;flex-direction:column}
+.msg.user{align-items:flex-end}
+.msg.assistant{align-items:flex-start}
+.msg-bubble{
+  max-width:85%;
+  padding:12px 16px;
+  font-size:15px;
+  line-height:1.65;
+  word-break:break-word;
+  white-space:pre-wrap;
+}
+.msg.user .msg-bubble{
+  background:var(--coral);
+  color:#fff;
+  border-radius:var(--radius-lg) 4px var(--radius-lg) var(--radius-lg);
+}
+.msg.assistant .msg-bubble{
+  background:var(--surface);
+  color:var(--ink);
+  border-radius:4px var(--radius-lg) var(--radius-lg) var(--radius-lg);
+  border:1px solid var(--border);
+}
+.msg.assistant .msg-bubble p{margin:0}
+.msg.assistant .msg-bubble p+p{margin-top:.7em}
+
+/* Streaming cursor */
+.cursor{
+  display:inline-block;
+  width:8px;height:16px;
+  background:var(--coral);
+  margin-left:2px;
+  border-radius:1px;
+  animation:blink .8s steps(1) infinite;
+  vertical-align:text-bottom;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* Typing indicator */
+.typing-dots{
+  display:flex;gap:4px;padding:8px 12px;
+}
+.typing-dots span{
+  width:6px;height:6px;
+  border-radius:50%;
+  background:var(--muted-light);
+  animation:dotBounce 1.3s ease-in-out infinite;
+}
+.typing-dots span:nth-child(2){animation-delay:.15s}
+.typing-dots span:nth-child(3){animation-delay:.3s}
+@keyframes dotBounce{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+
+/* Input */
+.input-area{
+  flex:none;
+  padding:12px 16px;
+  padding-bottom:max(12px, env(safe-area-inset-bottom));
+  background:var(--canvas);
+  border-top:1px solid var(--border);
+}
+.input-inner{
+  max-width:720px;
+  margin:0 auto;
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:10px 12px 10px 16px;
+  transition:border-color .15s;
+}
+.input-inner:focus-within{border-color:var(--coral)}
+.input-inner textarea{
+  flex:1;
+  border:none;
+  outline:none;
+  background:transparent;
+  font-family:var(--font-sans);
+  font-size:15px;
+  line-height:1.5;
+  color:var(--ink);
+  resize:none;
+  max-height:120px;
+  padding:0;
+}
+.input-inner textarea::placeholder{color:var(--muted-light)}
+.btn-send{
+  width:34px;height:34px;
+  border-radius:50%;
+  border:none;
+  background:var(--coral);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  flex:none;
+  transition:background .15s,opacity .15s;
+}
+.btn-send:hover{background:var(--coral-active)}
+.btn-send:disabled{opacity:.35;cursor:default}
+
+/* Think panel */
+.think-toggle{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:none;
+  border:none;
+  padding:4px 0;
+  font-size:13px;
+  color:var(--muted-light);
+  cursor:pointer;
+  font-family:var(--font-sans);
+}
+.think-toggle svg{width:14px;height:14px}
+.think-body{
+  margin-top:10px;
+  padding:12px 16px;
+  background:var(--canvas);
+  border-left:2px solid var(--border);
+  border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+  font-size:13.5px;
+  line-height:1.7;
+  color:var(--muted);
+  display:none;
+}
+.think-body.open{display:block}
+
+/* Toast */
+.toast{
+  position:fixed;
+  bottom:100px;
+  left:50%;
+  transform:translateX(-50%);
+  background:var(--ink);
+  color:#fff;
+  font-size:13px;
+  padding:8px 18px;
+  border-radius:var(--radius-full);
+  opacity:0;
+  transition:opacity .2s;
+  pointer-events:none;
+  z-index:100;
+}
+.toast.show{opacity:1}
+
+/* Settings panel */
+.settings-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.12);
+  z-index:50;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .2s;
+}
+.settings-overlay.open{opacity:1;pointer-events:auto}
+.settings-panel{
+  position:fixed;
+  bottom:0;left:0;right:0;
+  background:var(--surface);
+  border-radius:20px 20px 0 0;
+  padding:12px 0 32px;
+  box-shadow:0 -4px 24px rgba(20,20,19,.08);
+  z-index:51;
+  transform:translateY(100%);
+  transition:transform .25s ease;
+  max-height:70vh;
+  overflow-y:auto;
+}
+.settings-panel.open{transform:translateY(0)}
+.settings-handle{
+  width:36px;height:4px;
+  border-radius:2px;
+  background:var(--border);
+  margin:0 auto 18px;
+}
+.settings-header{
+  padding:0 20px 16px;
+  font-family:var(--font-serif);
+  font-size:20px;
+  font-weight:300;
+  color:var(--ink);
+}
+.settings-group{
+  margin:0 16px 12px;
+  background:var(--canvas);
+  border-radius:var(--radius);
+  overflow:hidden;
+}
+.settings-row{
+  display:flex;align-items:center;
+  justify-content:space-between;
+  padding:14px 16px;
+  font-size:15px;
+  color:var(--ink);
+  border-bottom:1px solid var(--border);
+}
+.settings-row:last-child{border-bottom:none}
+.settings-label{display:flex;align-items:center;gap:10px}
+.settings-label svg{width:18px;height:18px;color:var(--muted)}
+.settings-value{font-size:14px;color:var(--muted)}
+
+/* Toggle switch */
+.toggle{
+  width:44px;height:26px;
+  border-radius:13px;
+  background:var(--border);
+  padding:2px;
+  cursor:pointer;
+  transition:background .2s;
+  border:none;
+}
+.toggle.on{background:var(--coral)}
+.toggle::after{
+  content:'';
+  display:block;
+  width:22px;height:22px;
+  border-radius:50%;
+  background:#fff;
+  transition:transform .2s;
+  box-shadow:0 1px 2px rgba(0,0,0,.1);
+}
+.toggle.on::after{transform:translateX(18px)}
+
+/* Scrollbar */
+.messages::-webkit-scrollbar{width:4px}
+.messages::-webkit-scrollbar-track{background:transparent}
+.messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* Markdown inside assistant */
+.msg.assistant .msg-bubble code{
+  font-size:13px;
+  background:var(--canvas);
+  padding:2px 6px;
+  border-radius:4px;
+}
+.msg.assistant .msg-bubble pre{
+  background:var(--canvas);
+  padding:12px;
+  border-radius:8px;
+  overflow-x:auto;
+  margin:8px 0;
+  font-size:13px;
+}
+.msg.assistant .msg-bubble strong{font-weight:600}
+.msg.assistant .msg-bubble em{font-style:italic}
+.msg.assistant .msg-bubble blockquote{
+  border-left:2px solid var(--coral);
+  padding-left:12px;
+  color:var(--muted);
+  margin:8px 0;
+}
+
+@media(min-width:768px){
+  .messages{padding:24px 32px}
+  .input-area{padding:16px 32px}
+  .msg-bubble{max-width:72%}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Header -->
+  <header class="header">
+    <span class="header-title">Claudian</span>
+    <div class="header-actions">
+      <button class="btn-icon" id="btn-settings" aria-label="Settings" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M19 12c0-.4 0-.8-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 00-2-1.2L16 3H8l-.5 2.6a7 7 0 00-2 1.2l-2.4-1-2 3.4 2 1.6c-.1.4-.1.8-.1 1.2s0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 002 1.2L8 21h8l.5-2.6a7 7 0 002-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2Z" stroke="currentColor" stroke-width="1.3"/></svg>
+      </button>
+      <button class="btn-icon" id="btn-new-chat" aria-label="New Chat" title="New Chat">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Messages -->
+  <div class="messages" id="messages">
+    <div class="messages-inner" id="messages-inner">
+      <!-- Empty state -->
+      <div class="empty-state" id="empty-state">
+        <div class="empty-logo">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-4-4 1.41-1.41L11 14.17l6.59-6.59L19 9l-8 8z" fill="#cc785c"/>
+          </svg>
+        </div>
+        <div class="empty-title">今天想聊什么？</div>
+        <div class="empty-sub">我是 Claudian，你的 AI 伴侣。我会记住我们的对话，陪你思考、写作、或者只是待着。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="input-area">
+    <div class="input-inner">
+      <textarea id="input" rows="1" placeholder="输入消息…" autofocus></textarea>
+      <button class="btn-send" id="btn-send" aria-label="Send">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 10v4M9 7v10M13 5.5v13M17 9v6M21 11v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Settings overlay -->
+  <div class="settings-overlay" id="settings-overlay"></div>
+  <div class="settings-panel" id="settings-panel">
+    <div class="settings-handle"></div>
+    <div class="settings-header">设置</div>
+    <div class="settings-group">
+      <div class="settings-row">
+        <span class="settings-label">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M9 4.5a4 4 0 00-4 4v.3A3 3 0 005.6 14 3.3 3.3 0 009 18.5M15 4.5a4 4 0 014 4v.3A3 3 0 0118.4 14 3.3 3.3 0 0115 18.5M12 4.2v14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          记忆注入
+        </span>
+        <button class="toggle on" id="toggle-memory" aria-label="Toggle memory"></button>
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v4l2.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          思考过程
+        </span>
+        <button class="toggle" id="toggle-thinking" aria-label="Toggle thinking"></button>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-row">
+        <span class="settings-label">模型</span>
+        <span class="settings-value">DeepSeek V4 Flash</span>
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">版本</span>
+        <span class="settings-value">Claudian 1.0</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────
+const state = {
+  messages: [],
+  streaming: false,
+  settingsOpen: false,
+  memoryOn: true,
+  thinkingOn: false,
+};
+
+// ── DOM refs ───────────────────────────────────────────
+const $ = (sel) => document.querySelector(sel);
+const messagesEl = $("#messages");
+const messagesInner = $("#messages-inner");
+const emptyState = $("#empty-state");
+const inputEl = $("#input");
+const btnSend = $("#btn-send");
+const toast = $("#toast");
+const settingsOverlay = $("#settings-overlay");
+const settingsPanel = $("#settings-panel");
+const toggleMemory = $("#toggle-memory");
+const toggleThinking = $("#toggle-thinking");
+
+// ── Helpers ────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove("show"), 1800);
+}
+
+function scrollBottom() {
+  requestAnimationFrame(() => {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  });
+}
+
+function hideEmpty() {
+  if (emptyState) emptyState.style.display = "none";
+}
+
+function showEmpty() {
+  if (emptyState) emptyState.style.display = "";
+}
+
+// ── Render ─────────────────────────────────────────────
+function renderMessage(msg) {
+  const div = document.createElement("div");
+  div.className = `msg ${msg.role}`;
+  div.innerHTML = `<div class="msg-bubble">${escapeHtml(msg.content)}</div>`;
+  return div;
+}
+
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br>");
+}
+
+function createStreamingEl() {
+  const div = document.createElement("div");
+  div.className = "msg assistant";
+  div.innerHTML = `<div class="msg-bubble"><span class="cursor"></span></div>`;
+  return div;
+}
+
+// ── Chat API ───────────────────────────────────────────
+async function sendMessage() {
+  const text = inputEl.value.trim();
+  if (!text || state.streaming) return;
+
+  hideEmpty();
+  state.streaming = true;
+  inputEl.value = "";
+  inputEl.style.height = "auto";
+  btnSend.disabled = true;
+  updateInputHeight();
+
+  // Add user message
+  const userMsg = { role: "user", content: text };
+  state.messages.push(userMsg);
+  messagesInner.appendChild(renderMessage(userMsg));
+  scrollBottom();
+
+  // Add streaming placeholder
+  const streamEl = createStreamingEl();
+  const streamBubble = streamEl.querySelector(".msg-bubble");
+  messagesInner.appendChild(streamEl);
+  scrollBottom();
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: state.messages,
+        memory: state.memoryOn,
+        thinking: state.thinkingOn,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let fullContent = "";
+    let fullThinking = "";
+    // Create think panel if thinking mode is on
+    let thinkEl = null;
+    if (state.thinkingOn) {
+      thinkEl = document.createElement("div");
+      thinkEl.className = "msg assistant";
+      thinkEl.innerHTML = `<div style="width:100%">
+        <button class="think-toggle" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('svg').style.transform=this.nextElementSibling.classList.contains('open')?'rotate(180deg)':''">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v4l2.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          思考中…
+        </button>
+        <div class="think-body"></div>
+      </div>`;
+      messagesInner.appendChild(thinkEl);
+    }
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data: ")) continue;
+        const payload = trimmed.slice(6);
+        if (payload === "[DONE]") continue;
+
+        try {
+          const parsed = JSON.parse(payload);
+          const delta = parsed.choices?.[0]?.delta;
+          if (!delta) continue;
+
+          // Handle thinking/reasoning content
+          if (state.thinkingOn && delta.reasoning_content) {
+            fullThinking += delta.reasoning_content;
+            const body = thinkEl.querySelector(".think-body");
+            if (body) body.textContent = fullThinking;
+          }
+
+          // Handle regular content
+          if (delta.content) {
+            fullContent += delta.content;
+            streamBubble.innerHTML = escapeHtml(fullContent) + '<span class="cursor"></span>';
+            scrollBottom();
+          }
+        } catch {}
+      }
+    }
+
+    // Done streaming — remove cursor, finalize think panel
+    streamBubble.innerHTML = escapeHtml(fullContent);
+    if (thinkEl) {
+      const toggle = thinkEl.querySelector(".think-toggle");
+      if (toggle) {
+        toggle.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v4l2.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> 已思考`;
+      }
+      thinkEl.querySelector(".think-body")?.classList.add("open");
+    }
+    const assistantMsg = {
+      role: "assistant",
+      content: fullContent,
+      ...(state.thinkingOn && fullThinking ? { thinking: fullThinking } : {}),
+    };
+    state.messages.push(assistantMsg);
+  } catch (err) {
+    streamBubble.innerHTML = "出了一点问题，稍后再试吧。";
+    streamBubble.style.color = "var(--coral)";
+  }
+
+  state.streaming = false;
+  btnSend.disabled = false;
+  inputEl.focus();
+  updateInputHeight();
+  scrollBottom();
+}
+
+// ── Input handling ─────────────────────────────────────
+function updateInputHeight() {
+  inputEl.style.height = "auto";
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + "px";
+}
+
+inputEl.addEventListener("input", updateInputHeight);
+
+inputEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+btnSend.addEventListener("click", sendMessage);
+
+// ── Settings ───────────────────────────────────────────
+function openSettings() {
+  state.settingsOpen = true;
+  settingsOverlay.classList.add("open");
+  settingsPanel.classList.add("open");
+}
+function closeSettings() {
+  state.settingsOpen = false;
+  settingsOverlay.classList.remove("open");
+  settingsPanel.classList.remove("open");
+}
+
+$("#btn-settings").addEventListener("click", openSettings);
+settingsOverlay.addEventListener("click", closeSettings);
+
+toggleMemory.addEventListener("click", function () {
+  state.memoryOn = !state.memoryOn;
+  this.classList.toggle("on", state.memoryOn);
+  showToast(state.memoryOn ? "记忆注入已开启" : "记忆注入已关闭");
+});
+
+toggleThinking.addEventListener("click", function () {
+  state.thinkingOn = !state.thinkingOn;
+  this.classList.toggle("on", state.thinkingOn);
+  showToast(state.thinkingOn ? "思考过程已开启" : "思考过程已关闭");
+});
+
+// ── New chat ────────────────────────────────────────────
+$("#btn-new-chat").addEventListener("click", () => {
+  if (state.streaming) return;
+  state.messages = [];
+  messagesInner.innerHTML = "";
+  // Re-add empty state
+  const es = document.createElement("div");
+  es.className = "empty-state";
+  es.id = "empty-state";
+  es.innerHTML = `
+    <div class="empty-logo">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-4-4 1.41-1.41L11 14.17l6.59-6.59L19 9l-8 8z" fill="#cc785c"/>
+      </svg>
+    </div>
+    <div class="empty-title">今天想聊什么？</div>
+    <div class="empty-sub">我是 Claudian，你的 AI 伴侣。我会记住我们的对话，陪你思考、写作、或者只是待着。</div>`;
+  messagesInner.appendChild(es);
+  showToast("新对话已开始");
+});
+
+// ── PWA registration ───────────────────────────────────
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js").catch(() => {});
+}
+
+// ── Init ────────────────────────────────────────────────
+updateInputHeight();
+inputEl.focus();
+</script>
+</body>
+</html>
