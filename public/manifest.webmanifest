@@ -1,7 +1,7 @@
 {
   "name": "Claudian",
   "short_name": "Claudian",
-  "description": "Claudian — 宇航的 AI 伴侣",
+  "description": "Claudian — 本地优先的 AI 对话应用",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

@@ -12,9 +12,13 @@ if (!DEEPSEEK_API_KEY) {
   process.exit(1);
 }
 
-// 读取两段对话原文（从知识库的原文文件）
-const base = "D:/咕咕的知识库";
-const dialogueA = fs.readFileSync(path.join(base, "笔试题-对话A与B原文.md"), "utf-8");
+// 读取两段对话原文。输入文件不应提交到仓库。
+const inputFile = process.env.EVAL_INPUT_FILE;
+if (!inputFile) {
+  console.error("请设置 EVAL_INPUT_FILE，指向包含对话 A/B 的 Markdown 文件");
+  process.exit(1);
+}
+const dialogueA = fs.readFileSync(path.resolve(inputFile), "utf-8");
 const dialogueB = dialogueA; // 同一文件，下面用分隔符切开
 // 分隔：文件里 A 在 "# 对话 A" 到 "---" 之间，B 在 "# 对话 B" 到结尾
 const aSection = dialogueA.split("# 对话 B")[0].split("# 对话 A")[1] || "";

@@ -2,16 +2,16 @@
 
 # Claude in edge
 
-一个「Claude 风格」的 AI 伴侣聊天 PWA。前端是纯静态的 Anthropic 设计语言界面（珊瑚色、暖色调、Anthropic 字体），后端是一个极简的 Node.js / Express 服务，接入 DeepSeek API，支持流式回复（SSE）。
+一个「Claude 风格」的聊天 PWA。前端是纯静态界面，后端是一个极简的 Node.js HTTP 服务，接入 DeepSeek API，支持流式回复（SSE）。
 
-它是「Claude in edge / 咕巢」这条产品线的早期形态——轻量、免登录、打开即聊。
+默认仅监听本机回环地址；如果要开放到局域网或公网，必须先配置 HTTP Basic Auth。
 
 ## 特性
 
 - 📱 **PWA**：可安装到手机 / 桌面，`public/manifest.webmanifest` + `public/sw.js` 离线缓存
 - 💬 **流式回复**：后端用 SSE 把 DeepSeek 的增量实时推给前端
 - 🎨 **Claude 设计语言**：Anthropic Sans / Serif 字体、珊瑚色强调、暖色背景
-- 🤖 **深度人设**：`server.js` 内置完整系统提示词（AI 伴侣人设）
+- 🤖 **通用人设**：仓库只包含不涉及个人信息的通用系统提示词
 - 🧪 **AB 评估**：`run-eval-ab.cjs` + `eval-ab-output.txt` 用于对话质量评估
 
 ## 快速开始
@@ -35,13 +35,19 @@ npm run dev
 | 变量 | 说明 | 默认 |
 |---|---|---|
 | `DEEPSEEK_API_KEY` | DeepSeek API 密钥（必填） | 无 |
+| `DEEPSEEK_MODEL` | API 模型名 | `deepseek-v4-flash` |
+| `HOST` | 监听地址；非本机地址必须启用认证 | `127.0.0.1` |
 | `PORT` | 服务端口 | `3000` |
+| `BASIC_AUTH_USER` | 网页访问用户名 | 无 |
+| `BASIC_AUTH_PASSWORD` | 网页访问密码 | 无 |
+
+服务端会限制请求体大小、消息数量和单条消息长度，不向浏览器暴露上游 API 的原始错误内容。不要把 `.env` 或真实对话评测材料提交到仓库。
 
 ## 技术栈
 
 | 层 | 技术 |
 |---|---|
-| 后端 | Node.js 22+ / Express 5（ESM） |
+| 后端 | Node.js 22+ 原生 HTTP（ESM） |
 | 前端 | 原生 HTML / CSS / JS（无框架） |
 | 模型 | DeepSeek API（SSE 流式） |
 | 设计 | Anthropic 设计语言 |
