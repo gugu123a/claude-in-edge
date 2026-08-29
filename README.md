@@ -64,4 +64,4 @@ run-eval-ab.cjs          # AB 评估脚本
 
 ## 免责声明
 
-本项目与 Anthropic / Claude 官方无关，仅借鉴了其设计语言风格。模型由 DeepSeek 提供。
+本项目与 Anthropic / Claude 官方无关，仅供个人学习使用。
